@@ -1,0 +1,5 @@
+yum -y install epel-release ansible python3-pip
+pip3 install msrestazure azure-common
+
+wget -q https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
+
