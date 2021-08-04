@@ -7,9 +7,10 @@ terraform {
   }
 }
 
-variable "region" {
-	default = ""
-	description = "Region to use"
+resource "random_string" "sitename" {
+  length           = 16
+#  special          = true
+#  override_special = "/@£$"
 }
 
 provider "azurerm" {
@@ -21,67 +22,35 @@ resource "azurerm_resource_group" "main" {
   location = "North Europe"
 }
 
-resource "azurerm_virtual_network" "main" {
-  name                = "main"
-  address_space       = ["192.168.0.0/16"]
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-}
-
-resource "azurerm_subnet" "main" {
-  name                 = "internal"
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["192.168.0.0/24"]
-}
-
-resource "azurerm_public_ip" "main" {
-  name                    = "pubip"
-  location                = azurerm_resource_group.main.location
-  resource_group_name     = azurerm_resource_group.main.name
-  allocation_method       = "Dynamic"
-  idle_timeout_in_minutes = 30
-}
-
-resource "azurerm_network_interface" "main" {
-  name                = "main"
+resource "azurerm_app_service_plan" "main" {
+  name                = "main-appserviceplan"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
 
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.main.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id	  = azurerm_public_ip.main.id
+  sku {
+    tier = "Free"
+    size = "F1"
   }
 }
 
-resource "azurerm_linux_virtual_machine" "test" {
-  name                = "test"
-  resource_group_name = azurerm_resource_group.main.name
+resource "azurerm_app_service" "main" {
+  name                = "testwebapp123987"
   location            = azurerm_resource_group.main.location
-  size                = "Standard_B1s"
-  admin_username      = "adminuser"
-  network_interface_ids = [
-    azurerm_network_interface.main.id,
-  ]
-  admin_ssh_key {
-    username   = "adminuser"
-    public_key = file("~/.ssh/id_rsa.pub")
+  resource_group_name = azurerm_resource_group.main.name
+  app_service_plan_id = azurerm_app_service_plan.main.id
+
+app_settings = {
+    "SOME_KEY" = "some-value"
+  }
+  source_control {
+    repo_url = "https://github.com/Qutianer/dev-webapp"
+    branch = "master"
+#    manual_integration = true
+
   }
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
+}
 
-  source_image_reference {
-    publisher = "OpenLogic"
-    offer     = "CentOS"
-    sku       = "7.5"
-    version   = "latest"
-  }
-  tags = {
-    applicationRole="web-server"
-  }
+output "name" {
+value = azurerm_app_service.main.default_site_hostname
 }
