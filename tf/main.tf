@@ -7,14 +7,13 @@ terraform {
   }
 }
 
-resource "random_string" "sitename" {
-  length           = 16
-#  special          = true
-#  override_special = "/@£$"
-}
 
 provider "azurerm" {
 	features {}
+}
+
+locals {
+  sitename = join("",["mywebsite-",random_string.sitename.result])
 }
 
 resource "azurerm_resource_group" "main" {
@@ -34,7 +33,7 @@ resource "azurerm_app_service_plan" "main" {
 }
 
 resource "azurerm_app_service" "main" {
-  name                = "testwebapp123987"
+  name                = local.sitename
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   app_service_plan_id = azurerm_app_service_plan.main.id
@@ -43,9 +42,9 @@ app_settings = {
     "SOME_KEY" = "some-value"
   }
   source_control {
-    repo_url = "https://github.com/Qutianer/dev-webapp"
+    repo_url = var.githubsource 
     branch = "master"
-#    manual_integration = true
+    manual_integration = true
 
   }
 
